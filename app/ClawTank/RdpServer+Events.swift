@@ -54,8 +54,10 @@ extension RdpServer {
         if let media = decodeMedia(kind: kind, detail: detail) { return media }
         switch kind {
         case CT_EVENT_KIND_VIDEO_START:
-            let size = detail.split(separator: "x").compactMap { Int($0) }
-            return size.count == 2 ? .videoStart(width: size[0], height: size[1]) : .error("bad video size \(detail)")
+            let parts = detail.split(whereSeparator: { $0 == "x" || $0 == "@" }).compactMap { Int($0) }
+            return parts.count >= 2
+                ? .videoStart(width: parts[0], height: parts[1], scalePercent: parts.count > 2 ? parts[2] : 100)
+                : .error("bad video size \(detail)")
         case CT_EVENT_KIND_VIDEO_STOP:
             return .videoStop
         case CT_EVENT_KIND_VIDEO_RESIZE:
