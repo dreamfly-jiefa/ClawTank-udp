@@ -136,8 +136,8 @@ final class ServerController: ObservableObject {
             server = created
             status = .listening(port: server?.port ?? port)
             lastNotice = nil
-            log.info("Server started on port \(self.port) lanOnly=\(self.settings.lanOnly) "
-                     + "udp=\(self.settings.udpEnabled)")
+            log.info("Server started on port \(self.port) lanOnly=\(self.settings.lanOnly)")
+            log.info("UDP transport \(self.settings.udpEnabled ? "offered" : "off")")
         } catch RdpServer.StartError.failed(let code) where code == CT_STATUS_BIND_FAILED.rawValue {
             fail("Port \(port) is in use or unavailable")
         } catch RdpServer.StartError.failed(let code) where code == CT_STATUS_INVALID_ARGUMENT.rawValue {
