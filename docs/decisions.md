@@ -166,3 +166,18 @@ It shows the MagicDNS name or IP in the menu, Settings → Remote Access (a guid
 - Users do a one-time "Open Anyway". TCC permissions reset on each update, since an ad-hoc identity changes every build; the README FAQ covers this.
 - Apple silicon only (Intel: build from source).
 - Revisit when a Developer ID is available: test notarization, then add Sparkle with EdDSA-signed appcasts.
+
+## ADR-025 — Opt-in RDP-UDP sideband transport for video
+**Context.** Windows-to-Windows RDP negotiates an RDP-UDP sideband (MS-RDPBCGR multitransport, MS-RDPEUDP2, MS-RDPEMT) and moves graphics onto it. ClawTank pinned `ironrdp-server 0.13.0`, which has no UDP support at all. IronRDP merged server-side support as `RdpServerBuilder::with_udp_transport` (#1954, 2026-09-30; first released in the unreleased 0.14.0 line): the server offers reliable RDPEUDP2 under TLS, the client opens the sideband, an MS-RDPEMT tunnel is established with the offer's security cookie, and EGFX is migrated with MS-RDPEDYC Soft-Sync. Any failure at any stage falls back to TCP for that connection.
+**Decision.**
+- Pin the whole IronRDP stack to one master commit (`293cb4b`) until 0.14.0 is published, then return to released crates.
+- Offer the sideband only when a new **Settings → Security → Network → “Use the UDP transport for video (experimental)”** toggle is on (default off, restart needed).
+- Bind the UDP socket to the TCP listen address and port, and tell the server the local address the client reached.
+- Carry only EGFX video over the tunnel. Input, audio and clipboard stay on TCP.
+- Surface transport state in the unified log (`ironrdp_server::multitransport=debug`) and document how to verify it.
+**Consequences.**
+- Only Windows `mstsc` / Windows App opens the sideband; macOS Windows App, FreeRDP, Remmina and the built-in `probe` client stay on TCP (FreeRDP declines with `E_ABORT`).
+- This is the **reliable** UDP transport, not the lossy/FEC one. It removes the coupling between video and the TCP control stream, so input stays responsive while video is busy, but video itself is still an ordered stream that head-of-line blocks on loss. Expect a clean/low-loss Wi-Fi win, not a fix for a badly lossy link.
+- If an established tunnel drops while EGFX is on it, IronRDP ends the connection rather than silently falling back mid-session.
+- The IronRDP pin is a commit, not a release: bump it deliberately together with `Cargo.lock`; the temporary `ironrdp-server` vendor patch and ADR-017 are obsolete and removed.
+- MSRV becomes 1.94. Core is still portable, so the new end-to-end UDP test runs on Linux CI; the Swift side still needs a macOS runner.
