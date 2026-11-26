@@ -2,6 +2,9 @@
 SHELL := /bin/bash
 ARCH  ?= $(shell uname -m)
 CONFIG ?= Release
+# Overridable so CI can sign with a stable identity (TCC grants survive rebuilds).
+CODE_SIGN_IDENTITY ?= -
+OTHER_CODE_SIGN_FLAGS ?=
 DERIVED := app/build
 APP := $(DERIVED)/Build/Products/$(CONFIG)/ClawTank.app
 VERSION := $(shell sed -n 's/^version = "\(.*\)"/\1/p' core/Cargo.toml | head -1)
@@ -18,7 +21,8 @@ project: ## Generate the Xcode project from app/project.yml
 
 app: core project
 	xcodebuild -project app/ClawTank.xcodeproj -scheme ClawTank -configuration $(CONFIG) \
-		-derivedDataPath $(DERIVED) -destination "platform=macOS,arch=$(ARCH)" ARCHS=$(ARCH) -quiet build
+		-derivedDataPath $(DERIVED) -destination "platform=macOS,arch=$(ARCH)" ARCHS=$(ARCH) \
+		CODE_SIGN_IDENTITY="$(CODE_SIGN_IDENTITY)" OTHER_CODE_SIGN_FLAGS="$(OTHER_CODE_SIGN_FLAGS)" -quiet build
 	@if [ -z "$(RELEASE)" ] && [ -f "$$HOME/Library/Keychains/clawtank-dev.keychain-db" ]; then \
 		scripts/dev-signing.sh sign "$(APP)"; \
 	elif [ -z "$(RELEASE)" ]; then echo "note: ad-hoc signed (run 'make dev-signing' to keep permissions across rebuilds)"; fi

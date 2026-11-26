@@ -300,8 +300,9 @@ impl VideoHub {
             let region = Avc420Region {
                 left: 0,
                 top: 0,
-                right: w.saturating_sub(1),
-                bottom: h.saturating_sub(1),
+                // Avc420Region right/bottom are exclusive.
+                right: w,
+                bottom: h,
                 quantization_parameter: 22,
                 quality: 100,
             };

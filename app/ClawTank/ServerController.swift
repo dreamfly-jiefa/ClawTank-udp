@@ -74,6 +74,9 @@ final class ServerController: ObservableObject {
     private let fileServer = FileServer()
     private var subscriptions: Set<AnyCancellable> = []
     private let log = Logger(subsystem: "dev.clawtank.ClawTank", category: "server")
+    /// The system permission prompts are shown at most once per launch, not per session.
+    private var promptedAccessibility = false
+    private var promptedScreenRecording = false
 
     /// RDP input marks a person as active; the Agent API yields to them (ADR-023).
     let humanActivity: HumanActivity
@@ -287,8 +290,12 @@ final class ServerController: ObservableObject {
     private func startInput() {
         // Shows the system prompt the first time; input is ignored until granted.
         // "AXTrustedCheckOptionPrompt" is the value of kAXTrustedCheckOptionPrompt (a C global).
-        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        if !AXIsProcessTrustedWithOptions(options) {
+        if !AXIsProcessTrusted() {
+            if !promptedAccessibility {
+                promptedAccessibility = true
+                let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+                _ = AXIsProcessTrustedWithOptions(options)
+            }
             lastNotice = "Grant Accessibility to ClawTank in System Settings to enable keyboard and mouse"
             log.notice("Accessibility not granted; input is ignored")
         }
@@ -322,8 +329,11 @@ extension ServerController {
     private func startVideo(width: Int, height: Int, scalePercent: Int?) {
         guard server != nil else { return }
         guard CGPreflightScreenCaptureAccess() else {
-            // Shows the system prompt the first time; afterwards the user must use Settings.
-            CGRequestScreenCaptureAccess()
+            // Shows the system prompt once per launch; afterwards the user must use Settings.
+            if !promptedScreenRecording {
+                promptedScreenRecording = true
+                CGRequestScreenCaptureAccess()
+            }
             lastNotice = "Grant Screen Recording to ClawTank in System Settings, then reconnect"
             log.notice("Screen Recording not granted; client sees the test pattern")
             return

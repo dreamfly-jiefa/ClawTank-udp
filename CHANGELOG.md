@@ -4,6 +4,12 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Fixes
+- AVC420 regions now use the exclusive right/bottom bounds the current `ironrdp-egfx` defines; the destination rectangle was one pixel short.
+- Screen Recording and Accessibility system prompts appear at most once per launch instead of once per connection.
+- Launching from the DMG (App Translocation) is detected with an actionable "Move ClawTank to Applications" alert, and the troubleshooting guide explains the colour-bar symptom.
+- CI builds are signed with a committed, stable self-signed identity so TCC grants survive updates.
+
 ### Transport
 - Optional RDP-UDP sideband transport (MS-RDPEMT over reliable RDPEUDP2 under TLS) for video, matching what Windows-to-Windows RDP negotiates. Off by default behind Settings → Security → Network; Windows clients use it, everything else stays on TCP, and any failure falls back to TCP per connection (`docs/decisions.md` ADR-025).
 - Upgraded IronRDP from released 0.13.0 to a pinned master commit for the UDP server support (`RdpServerBuilder::with_udp_transport`); the temporary `ironrdp-server` vendor patch is gone. MSRV 1.94.

@@ -145,7 +145,7 @@ One RDP session at a time, showing the logged-in user's desktop. Separate sessio
 The APIs ClawTank needs (input injection, virtual displays) aren't allowed in sandboxed App Store apps.
 
 **macOS asks for permissions again after I update.**
-Unsigned (ad-hoc) builds get a new code identity every release, so macOS treats each update as a new app. Re-enable ClawTank under **Privacy & Security → Screen Recording / Accessibility** (remove the old entry first if it's there). Developer ID-signed builds will keep their permissions.
+If you opened ClawTank from the DMG, macOS runs it from a temporary path and permissions never stick: drag it to Applications and open it there. Official CI DMGs are signed with a stable self-signed identity, so grants survive updates; ad-hoc builds made locally still get a new identity per build. Developer ID-signed builds will also keep their permissions.
 
 **Does it phone home?**
 No. ClawTank makes no network connections of its own. It only accepts incoming RDP connections, plus optional local Agent API calls on 127.0.0.1.
@@ -160,7 +160,8 @@ No. ClawTank makes no network connections of its own. It only accepts incoming R
 | Certificate warning every time | Accept it once with "Don't ask me again" after checking the fingerprint in the Setup Guide. |
 | You see only the wallpaper | The Mac is locked. Unlock it at the keyboard. |
 | You can see but not control | Grant **Accessibility** to ClawTank (System Settings → Privacy & Security → Accessibility), then reconnect. |
-| Black screen | Grant **Screen Recording**, then quit and reopen ClawTank. |
+| Colour bars instead of the desktop | Grant **Screen Recording**, and make sure ClawTank runs from **Applications**, not from the DMG (macOS then uses a temporary path and the permission does not stick). Quit and reopen ClawTank after granting. |
+| Permission prompts every launch | ClawTank is running from the DMG: drag it to Applications and open it there. |
 | No sound | Check **Settings → General → Play this Mac's sound on the client**, and turn on audio in your client's settings. |
 | Ctrl+C doesn't copy (from Windows) | Turn on **Settings → General → Swap Ctrl and ⌘**. |
 | Choppy over Wi-Fi | Lower **Settings → Display & Quality**, or use Ethernet on the Mac. The menu shows live fps and round-trip time. |

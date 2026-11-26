@@ -29,6 +29,26 @@ final class AppModel: ObservableObject {
         if !settings.hasCompletedOnboarding {
             DispatchQueue.main.async { [windows] in windows.show(.setup) }
         }
+        if Bundle.main.isTranslocated {
+            DispatchQueue.main.async { Self.warnTranslocated() }
+        }
+    }
+
+    /// Gatekeeper runs an app opened straight from a quarantined DMG in a random read-only path
+    /// (App Translocation). TCC grants made there are lost on the next launch, so the setup
+    /// prompts appear forever and Screen Recording never takes effect.
+    private static func warnTranslocated() {
+        let alert = NSAlert()
+        alert.messageText = "Move ClawTank to Applications"
+        alert.informativeText = "ClawTank is running from the downloaded disk image. macOS gives it a "
+            + "temporary path, so Screen Recording and Accessibility permissions are lost every time it "
+            + "opens. Drag ClawTank to Applications, then open it there."
+        alert.addButton(withTitle: "Open Applications Folder")
+        alert.addButton(withTitle: "Later")
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications"))
+        }
     }
 
     func exportDiagnostics() {
@@ -152,6 +172,9 @@ extension ServerController {
 }
 
 extension Bundle {
+    /// True while macOS runs this bundle from App Translocation.
+    var isTranslocated: Bool { bundlePath.contains("/AppTranslocation/") }
+
     var shortVersion: String {
         object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     }
