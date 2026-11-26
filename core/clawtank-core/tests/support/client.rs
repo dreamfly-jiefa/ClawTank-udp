@@ -55,9 +55,16 @@ pub fn client_config_with(
 ) -> ironrdp_connector::Config {
     ironrdp_connector::Config {
         desktop_size: ironrdp_connector::DesktopSize { width, height },
+        monitor_layout: None,
         desktop_scale_factor: 0,
+        desktop_physical_size: None,
+        desktop_orientation: None,
+        device_scale_factor: None,
+        monitor_extended_layout: None,
+        relative_mouse_input: false,
         enable_tls: false,
         enable_credssp: true,
+        enable_standard_rdp_security: false,
         credentials: Credentials::UsernamePassword {
             username: user.to_owned(),
             password: password.to_owned(),
@@ -65,21 +72,25 @@ pub fn client_config_with(
         domain: None,
         client_build: 0,
         client_name: "clawtank-probe".to_owned(),
-        keyboard_type: KeyboardType::IbmEnhanced,
+        keyboard_type: KeyboardType::IBM_ENHANCED,
         keyboard_subtype: 0,
         keyboard_functional_keys_count: 12,
         keyboard_layout: 0,
         ime_file_name: String::new(),
+        connection_type: ironrdp_pdu::gcc::ConnectionType::Lan,
         bitmap: None,
         dig_product_id: String::new(),
         client_dir: String::new(),
         alternate_shell: String::new(),
         work_dir: String::new(),
+        remote_application_mode: false,
+        rail_support_level: ironrdp_pdu::rdp::capability_sets::RailSupportLevel::empty(),
         platform: MajorPlatformType::MACINTOSH,
         hardware_id: None,
         request_data: None,
         autologon: false,
         enable_audio_playback: false,
+        enable_audio_capture: false,
         performance_flags: PerformanceFlags::default(),
         license_cache: None,
         timezone_info: TimezoneInfo::default(),
@@ -87,6 +98,8 @@ pub fn client_config_with(
         enable_server_pointer: server_pointer,
         pointer_software_rendering: !server_pointer,
         multitransport_flags: None,
+        support_dyn_vc_gfx_protocol: true,
+        rdp_version: ironrdp_pdu::gcc::RdpVersion::V5_PLUS,
     }
 }
 
@@ -112,7 +125,7 @@ impl EgfxRecorder {
     }
 }
 
-struct RecordingHandler(EgfxRecorder);
+pub struct RecordingHandler(pub EgfxRecorder);
 
 impl GraphicsPipelineHandler for RecordingHandler {
     fn on_reset_graphics(&mut self, width: u32, height: u32) {
@@ -125,7 +138,7 @@ impl GraphicsPipelineHandler for RecordingHandler {
 }
 
 /// Stands in for an H.264 decoder: records the bitstream and returns a blank frame.
-struct RecordingDecoder(EgfxRecorder);
+pub struct RecordingDecoder(pub EgfxRecorder);
 
 impl H264Decoder for RecordingDecoder {
     fn decode(&mut self, data: &[u8]) -> DecoderResult<DecodedFrame> {
@@ -232,7 +245,8 @@ pub async fn connect_with_channels(
         server_public_key,
         None,
     )
-    .await?;
+    .await?
+    .into_connected()?;
     Ok((result, framed, cert_der))
 }
 
@@ -273,7 +287,7 @@ pub async fn pump_until(
                 .await;
         let Ok(read) = read else { continue };
         let (action, payload) = read?;
-        for out in stage.process(&mut image, action, &payload)? {
+        for out in stage.process(&mut image, action, &payload, None)? {
             match out {
                 ActiveStageOutput::ResponseFrame(frame) => framed.write_all(&frame).await?,
                 ActiveStageOutput::Terminate(reason) => {
@@ -301,7 +315,7 @@ pub async fn receive_test_pattern(
     let outcome = tokio::time::timeout(timeout, async {
         loop {
             let (action, payload) = framed.read_pdu().await?;
-            for out in stage.process(&mut image, action, &payload)? {
+            for out in stage.process(&mut image, action, &payload, None)? {
                 match out {
                     ActiveStageOutput::ResponseFrame(frame) => framed.write_all(&frame).await?,
                     ActiveStageOutput::GraphicsUpdate(_) => {

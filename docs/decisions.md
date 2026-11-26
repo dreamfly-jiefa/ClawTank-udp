@@ -84,6 +84,8 @@ Format: context → decision → consequences. Newest last. Status is *Accepted*
 **Consequences.** Re-benchmark on real desktop content and judge text quality visually in a client. If rtvc's quality or rate control is worse for text, quality presets (Phase 5) may pick `ave.avc`.
 
 ## ADR-017 — Temporary vendored `ironrdp-server` 0.13.0 with two upstream fixes
+
+*Superseded by ADR-025: the upstream fixes are in the new pin, and the vendor directory is gone.*
 **Context.** The published 0.13.0 maps the middle button and horizontal wheel to *moves*, and maps the X1/X2 (back/forward) buttons to **left/right clicks**. It also sends 32 bpp pointers with an empty AND mask, which Windows App for macOS ignores (it keeps its default arrow). IronRDP master fixes both, but they aren't released.
 **Decision.** Vendor 0.13.0 under `core/vendor/ironrdp-server` via `[patch.crates-io]`, changing only (1) the `MousePdu`/`MouseXPdu` conversions in `handler.rs` (plus a `HorizontalScroll` variant) and (2) the AND mask derived from alpha (`encoder/pointer_mask.rs`, copied from master). Both are marked `ClawTank patch`. The vendor directory is excluded from our workspace lints. Chosen by the maintainer over moving to IronRDP master.
 **Consequences.** Remove it when IronRDP publishes a release with these fixes; `diff -r` against the registry copy shows the full delta. Licensing is Apache-2.0 OR MIT, credited in THIRD_PARTY_NOTICES.

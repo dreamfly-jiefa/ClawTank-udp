@@ -8,8 +8,7 @@
 //! format), so the hub remembers which format it asked for.
 
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex, Weak};
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
 use ironrdp_cliprdr::backend::{ClipboardMessage, CliprdrBackend, CliprdrBackendFactory};
 use ironrdp_cliprdr::pdu::{
@@ -276,29 +275,6 @@ impl ClipboardHub {
         (self.sink)(CoreEvent::ClipboardFileContents { stream_id });
     }
 
-    /// Drives the clipboard's lock/transfer timeouts once a second (IronRDP #2148).
-    fn spawn_timeout_driver(hub: &Arc<Self>) {
-        let weak: Weak<Self> = Arc::downgrade(hub);
-        let _ = std::thread::Builder::new()
-            .name("clawtank-cliprdr-timer".to_owned())
-            .spawn(move || {
-                while let Some(hub) = weak.upgrade() {
-                    if hub.lock().ready {
-                        let _ = hub.sender_event(ServerEvent::CliprdrDriveTimeouts);
-                    }
-                    drop(hub);
-                    std::thread::sleep(Duration::from_secs(1));
-                }
-            });
-    }
-
-    fn sender_event(&self, event: ServerEvent) -> bool {
-        self.lock()
-            .sender
-            .as_ref()
-            .is_some_and(|s| s.send(event).is_ok())
-    }
-
     fn reset(&self, ready: bool) {
         let mut inner = self.lock();
         inner.ready = ready;
@@ -328,7 +304,6 @@ impl ClipboardFactory {
 impl ServerEventSender for ClipboardFactory {
     fn set_sender(&mut self, sender: UnboundedSender<ServerEvent>) {
         self.hub.lock().sender = Some(sender);
-        ClipboardHub::spawn_timeout_driver(&self.hub);
     }
 }
 

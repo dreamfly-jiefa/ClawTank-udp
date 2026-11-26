@@ -55,7 +55,7 @@ impl RdpsndClientHandler for AudioClient {
     fn get_formats(&self) -> &[AudioFormat] {
         &self.formats
     }
-    fn wave(&mut self, _format_no: usize, _ts: u32, data: Cow<'_, [u8]>) {
+    fn wave(&mut self, _format: &ironrdp_rdpsnd::pdu::AudioFormat, _ts: u32, data: Cow<'_, [u8]>) {
         self.seen.lock().unwrap().waves.push(data.into_owned());
     }
     fn set_volume(&mut self, _volume: VolumePdu) {}
@@ -142,6 +142,7 @@ async fn audio_and_clipboard_round_trip() {
         password: "audio-clip-password".to_owned(),
         identity: TlsIdentity::generate("ac-test.local").unwrap(),
         policy: AccessPolicy::lan_only(),
+        udp: false,
     };
     let server = server::start(
         config,
@@ -273,7 +274,7 @@ async fn audio_and_clipboard_round_trip() {
             continue;
         };
         let (action, payload) = read.unwrap();
-        for out in stage.process(&mut image, action, &payload).unwrap() {
+        for out in stage.process(&mut image, action, &payload, None).unwrap() {
             if let ActiveStageOutput::ResponseFrame(bytes) = out {
                 session.write_all(&bytes).await.unwrap();
             }

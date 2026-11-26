@@ -4,6 +4,11 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Transport
+- Optional RDP-UDP sideband transport (MS-RDPEMT over reliable RDPEUDP2 under TLS) for video, matching what Windows-to-Windows RDP negotiates. Off by default behind Settings → Security → Network; Windows clients use it, everything else stays on TCP, and any failure falls back to TCP per connection (`docs/decisions.md` ADR-025).
+- Upgraded IronRDP from released 0.13.0 to a pinned master commit for the UDP server support (`RdpServerBuilder::with_udp_transport`); the temporary `ironrdp-server` vendor patch is gone. MSRV 1.94.
+- Input: button PDUs now carry their position, so the core emits a move before each press/release.
+
 ### MCP
 - The MCP server is packaged as an MCP Bundle (`clawtank-mcp-<version>-arm64.mcpb`) for one-click install in Claude Desktop, and listed in the MCP Registry as `io.github.HMAKT99/clawtank` (`server.json`). `make release` builds both.
 - OpenClaw skill `clawtank-mac` on ClawHub (`packaging/openclaw/clawtank-mac/SKILL.md`): screenshots, input, apps and virtual displays through the Agent API.

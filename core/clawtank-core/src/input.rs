@@ -72,35 +72,54 @@ impl InputForwarder {
     }
 }
 
-pub fn translate_mouse(event: MouseEvent) -> Option<InputEvent> {
-    use MouseButton as B;
-    let button = |button, down| Some(InputEvent::Button { button, down });
+pub fn translate_mouse(event: MouseEvent) -> Vec<InputEvent> {
+    let button = |button, down| InputEvent::Button { button, down };
+    let moved = |x: u16, y: u16| InputEvent::Move { x, y };
     match event {
-        MouseEvent::Move { x, y } => Some(InputEvent::Move { x, y }),
-        MouseEvent::RelMove { x, y } => Some(InputEvent::RelMove { dx: x, dy: y }),
-        MouseEvent::LeftPressed => button(B::Left, true),
-        MouseEvent::LeftReleased => button(B::Left, false),
-        MouseEvent::RightPressed => button(B::Right, true),
-        MouseEvent::RightReleased => button(B::Right, false),
-        MouseEvent::MiddlePressed => button(B::Middle, true),
-        MouseEvent::MiddleReleased => button(B::Middle, false),
-        MouseEvent::Button4Pressed => button(B::X1, true),
-        MouseEvent::Button4Released => button(B::X1, false),
-        MouseEvent::Button5Pressed => button(B::X2, true),
-        MouseEvent::Button5Released => button(B::X2, false),
-        MouseEvent::VerticalScroll { value } => Some(InputEvent::Wheel {
+        MouseEvent::Move { x, y } => vec![moved(x, y)],
+        MouseEvent::RelMove { x, y } => vec![InputEvent::RelMove { dx: x, dy: y }],
+        // Button PDUs carry the position they happened at; deliver it first so the host's
+        // pointer state matches before the press/release.
+        MouseEvent::Button {
+            x,
+            y,
+            button: b,
+            pressed,
+        } => vec![moved(x, y), button(map_button(b), pressed)],
+        MouseEvent::ButtonRel {
+            x,
+            y,
+            button: b,
+            pressed,
+        } => vec![
+            InputEvent::RelMove { dx: x, dy: y },
+            button(map_button(b), pressed),
+        ],
+        MouseEvent::VerticalScroll { value } => vec![InputEvent::Wheel {
             vertical: i32::from(value),
             horizontal: 0,
-        }),
-        MouseEvent::HorizontalScroll { value } => Some(InputEvent::Wheel {
+        }],
+        MouseEvent::HorizontalScroll { value } => vec![InputEvent::Wheel {
             vertical: 0,
             horizontal: i32::from(value),
-        }),
+        }],
         // Advanced-input (ainput) wheel deltas, same 120-per-notch convention.
-        MouseEvent::Scroll { x, y } => Some(InputEvent::Wheel {
+        MouseEvent::Scroll { x, y } => vec![InputEvent::Wheel {
             vertical: y,
             horizontal: x,
-        }),
+        }],
+        _ => Vec::new(),
+    }
+}
+
+fn map_button(button: ironrdp_server::MouseButton) -> MouseButton {
+    match button {
+        ironrdp_server::MouseButton::Left => MouseButton::Left,
+        ironrdp_server::MouseButton::Right => MouseButton::Right,
+        ironrdp_server::MouseButton::Middle => MouseButton::Middle,
+        ironrdp_server::MouseButton::X1 => MouseButton::X1,
+        ironrdp_server::MouseButton::X2 => MouseButton::X2,
+        _ => MouseButton::Left,
     }
 }
 
@@ -132,7 +151,7 @@ impl RdpServerInputHandler for InputForwarder {
     }
 
     fn mouse(&mut self, event: MouseEvent) {
-        if let Some(e) = translate_mouse(event) {
+        for e in translate_mouse(event) {
             self.emit(e);
         }
     }
@@ -145,22 +164,30 @@ mod tests {
     #[test]
     fn mouse_events_translate() {
         assert_eq!(
-            translate_mouse(MouseEvent::Button4Pressed),
-            Some(InputEvent::Button {
-                button: MouseButton::X1,
-                down: true
-            })
+            translate_mouse(MouseEvent::Button {
+                x: 3,
+                y: 4,
+                button: ironrdp_server::MouseButton::X1,
+                pressed: true
+            }),
+            vec![
+                InputEvent::Move { x: 3, y: 4 },
+                InputEvent::Button {
+                    button: MouseButton::X1,
+                    down: true
+                }
+            ]
         );
         assert_eq!(
             translate_mouse(MouseEvent::HorizontalScroll { value: -120 }),
-            Some(InputEvent::Wheel {
+            vec![InputEvent::Wheel {
                 vertical: 0,
                 horizontal: -120
-            })
+            }]
         );
         assert_eq!(
             translate_mouse(MouseEvent::Move { x: 10, y: 20 }),
-            Some(InputEvent::Move { x: 10, y: 20 })
+            vec![InputEvent::Move { x: 10, y: 20 }]
         );
     }
 

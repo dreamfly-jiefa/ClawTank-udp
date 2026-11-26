@@ -32,6 +32,7 @@ async fn display_control_resize_restarts_the_surface() {
         password: "resize-test-password".to_owned(),
         identity: TlsIdentity::generate("resize-test.local").unwrap(),
         policy: clawtank_core::access::AccessPolicy::lan_only(),
+        udp: false,
     };
     let server = server::start(
         config,
@@ -106,7 +107,7 @@ async fn display_control_resize_restarts_the_surface() {
             continue;
         };
         let (action, payload) = read.unwrap();
-        for out in stage.process(&mut image, action, &payload).unwrap() {
+        for out in stage.process(&mut image, action, &payload, None).unwrap() {
             if let ActiveStageOutput::ResponseFrame(bytes) = out {
                 session.write_all(&bytes).await.unwrap();
             }

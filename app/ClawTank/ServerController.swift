@@ -118,7 +118,7 @@ final class ServerController: ObservableObject {
             fingerprint = identity.fingerprint
             let configuration = RdpServer.Configuration(
                 port: port, username: username, password: password, identity: identity,
-                lanOnly: settings.lanOnly, allowlist: settings.allowlist)
+                lanOnly: settings.lanOnly, allowlist: settings.allowlist, udp: settings.udpEnabled)
             let input = self.input
             let fileServer = self.fileServer
             let created = try RdpServer(configuration: configuration, onEvent: { [weak self] event in
@@ -136,7 +136,8 @@ final class ServerController: ObservableObject {
             server = created
             status = .listening(port: server?.port ?? port)
             lastNotice = nil
-            log.info("Server started on port \(self.port) lanOnly=\(self.settings.lanOnly)")
+            log.info("Server started on port \(self.port) lanOnly=\(self.settings.lanOnly) "
+                     + "udp=\(self.settings.udpEnabled)")
         } catch RdpServer.StartError.failed(let code) where code == CT_STATUS_BIND_FAILED.rawValue {
             fail("Port \(port) is in use or unavailable")
         } catch RdpServer.StartError.failed(let code) where code == CT_STATUS_INVALID_ARGUMENT.rawValue {

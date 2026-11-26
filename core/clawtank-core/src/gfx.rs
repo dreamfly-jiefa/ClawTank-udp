@@ -15,6 +15,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, info};
 
 use crate::video::VideoHub;
+use ironrdp_server::GfxContext;
 
 pub struct GfxFactory {
     hub: Arc<VideoHub>,
@@ -33,15 +34,15 @@ impl ServerEventSender for GfxFactory {
 }
 
 impl GfxServerFactory for GfxFactory {
-    fn build_gfx_handler(&self) -> Box<dyn GraphicsPipelineHandler> {
+    fn build_gfx_handler(&self, _ctx: GfxContext) -> Box<dyn GraphicsPipelineHandler> {
         Box::new(GfxHandler {
             hub: Arc::clone(&self.hub),
         })
     }
 
-    fn build_server_with_handle(&self) -> Option<(GfxDvcBridge, GfxServerHandle)> {
+    fn build_server_with_handle(&self, ctx: GfxContext) -> Option<(GfxDvcBridge, GfxServerHandle)> {
         let server: GfxServerHandle = Arc::new(Mutex::new(GraphicsPipelineServer::new(
-            self.build_gfx_handler(),
+            self.build_gfx_handler(ctx),
         )));
         self.hub.attach(Arc::clone(&server));
         Some((GfxDvcBridge::new(Arc::clone(&server)), server))

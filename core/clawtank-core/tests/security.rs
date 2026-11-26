@@ -23,6 +23,7 @@ fn start(password: &str) -> (ServerHandle, Events) {
         password: password.to_owned(),
         identity: TlsIdentity::generate("security-test.local").unwrap(),
         policy: AccessPolicy::lan_only(),
+        udp: false,
     };
     let server = server::start(
         config,

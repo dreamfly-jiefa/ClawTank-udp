@@ -26,7 +26,7 @@ final class CoreBridge: Sendable {
             case CT_LOG_LEVEL_INFO: coreLog.info("\(text, privacy: .public)")
             default: coreLog.debug("\(text, privacy: .public)")
             }
-        }, "info")
+        }, "info,ironrdp_server::multitransport=debug")
     }
 
     /// Calls `ct_core_init` again; exposed for tests of the idempotency contract.
@@ -124,6 +124,8 @@ final class RdpServer: @unchecked Sendable {
         var lanOnly = true
         /// Comma-separated IPs/CIDRs; empty = no allowlist.
         var allowlist = ""
+        /// Offer the RDP-UDP sideband transport (falls back to TCP per connection).
+        var udp = false
     }
 
     enum StartError: Error, Equatable {
@@ -152,7 +154,7 @@ final class RdpServer: @unchecked Sendable {
                                 bind_ip: bindIP, port: config.port, username: user, password: pass,
                                 cert_der: cert.bindMemory(to: UInt8.self).baseAddress, cert_der_len: cert.count,
                                 key_der: key.bindMemory(to: UInt8.self).baseAddress, key_der_len: key.count,
-                                lan_only: config.lanOnly, allowlist: allowlist)
+                                lan_only: config.lanOnly, udp: config.udp, allowlist: allowlist)
                             return ct_server_start(&native, rdpServerEventCallback, rdpServerInputCallback,
                                                    sink.toOpaque(), &status)
                         }

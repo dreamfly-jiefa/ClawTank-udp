@@ -27,7 +27,7 @@ ClawTank is a native RDP server for macOS. Connect from any standard Remote Desk
 
 ## Features
 
-- **Fast:** H.264 video encoded by the Mac's media engine and sent over the RDP graphics pipeline. About 60 fps at under 10% CPU on Apple silicon.
+- **Fast:** H.264 video encoded by the Mac's media engine and sent over the RDP graphics pipeline. About 60 fps at under 10% CPU on Apple silicon. Optional RDP-UDP sideband for Windows clients (experimental, off by default).
 - **Fits your screen:** the desktop resizes live to the client's window. Retina virtual displays give crisp text, and a headless Mac needs no dummy HDMI plug.
 - **Feels local:**
   - keyboard and mouse, including scroll, middle and back/forward buttons
@@ -171,6 +171,7 @@ No. ClawTank makes no network connections of its own. It only accepts incoming R
 - One monitor per session: a multi-monitor client gets one resizable desktop. No AVC444 (full-colour 4:4:4) yet; Retina sessions give crisp text instead.
 - Not notarized yet, so you need the one-time "Open Anyway" step. Apple silicon builds only.
 - No automatic updates yet: watch [Releases](https://github.com/HMAKT99/ClawTank/releases) on GitHub.
+- The optional UDP transport is reliable-only and Windows-client-only; it helps on a clean or low-loss Wi-Fi link, not on a badly lossy one.
 - See [CHANGELOG.md](CHANGELOG.md) and [docs/testing.md](docs/testing.md) for what's been verified.
 
 ## Help test the beta

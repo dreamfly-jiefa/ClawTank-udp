@@ -45,6 +45,8 @@ flowchart LR
 3. The Annex-B access unit goes through the C ABI as a pointer and length.
 4. `video.rs` sends it as an EGFX AVC420 frame.
 
+When UDP multitransport is enabled, IronRDP first offers a sideband RDPEUDP2 socket on the same address and port (TLS, cookie-bound to the TCP session). After an MS-RDPEMT tunnel is up it migrates EGFX onto it with Soft-Sync; the video steps above are unchanged, and only the transport differs. Any negotiation or handshake failure keeps that connection on TCP (ADR-025).
+
 Backpressure is applied before encoding, in `VideoSession.swift`: if the core wouldn't send a frame, the frame isn't encoded. `AdaptiveBitrate.swift` tunes the bit rate once a second, using the core's frame-acknowledgement timing.
 
 **Display.** `DisplayService.swift` picks the source from the Display setting:
@@ -67,7 +69,7 @@ Live resize arrives through the Display Control channel (`resize` in the core) a
 | Layer | Where | What |
 |---|---|---|
 | Before any handshake | `access.rs` | Lockout (5 failures in 5 min), optional allowlist, LAN-only (private, link-local, CGNAT/Tailscale and ULA ranges) |
-| Transport | `tls.rs`, `server.rs` | TLS always, with a stable self-signed RSA-2048 identity verified by its SHA-256 fingerprint |
+| Transport | `tls.rs`, `server.rs` | TLS always, with a stable self-signed RSA-2048 identity verified by its SHA-256 fingerprint; the optional UDP sideband repeats TLS and is bound to the session by a one-time cookie |
 | Authentication | IronRDP CredSSP | NLA required, with a dedicated ClawTank password, not the macOS one (ADR-003) |
 | Secrets | `SecurityService.swift` | Keychain for signed builds; an owner-only 0600 file for ad-hoc builds (ADR-013) |
 | Accountability | `AuditLog.swift` | JSON-lines log of every connection, failure and agent action, rotated, viewable in the app |
@@ -86,7 +88,6 @@ ClawTank makes no outgoing network connections and sends no telemetry.
 |---|---|
 | `core/clawtank-core/` | Rust protocol core: `src/` (modules above), `tests/` (end-to-end tests with IronRDP's client), `examples/` (`probe`, `testserver`, `files_demo`) |
 | `core/clawtank-mcp/` | The MCP server for agents |
-| `core/vendor/ironrdp-server/` | IronRDP server with small patches; see [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) |
 | `app/` | XcodeGen project (`project.yml`), the Swift app (`ClawTank/`) and XCTest (`ClawTankTests/`) |
 | `scripts/` | Signing, DMG packaging, release |
 | `tests/` | FreeRDP interop smoke test (run in CI on Linux) |

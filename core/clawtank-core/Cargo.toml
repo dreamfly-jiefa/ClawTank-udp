@@ -13,16 +13,15 @@ crate-type = ["staticlib", "rlib"]
 
 [dependencies]
 # Exact pins for IronRDP: see docs/research/ironrdp.md. Bump deliberately, never implicitly.
-ironrdp-server = { version = "=0.13.0", default-features = false, features = ["egfx"] }
-ironrdp-cliprdr = "=0.7.0"
-ironrdp-core = "=0.2.1"
-ironrdp-displaycontrol = "=0.8.0"
-ironrdp-dvc = "=0.8.0"
-ironrdp-egfx = "=0.3.0"
-ironrdp-pdu = "=0.9.0"
-ironrdp-rdpsnd = "=0.9.0"
-ironrdp-svc = "=0.8.0"
-anyhow = "1" # ironrdp-server 0.13 trait signatures use anyhow::Result
+ironrdp-server = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888", default-features = false, features = ["egfx"] }
+ironrdp-cliprdr = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-core = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-displaycontrol = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-dvc = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-egfx = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-pdu = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-rdpsnd = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-svc = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
 async-trait = "0.1"
 bytes = "1"
 rcgen = { version = "0.14", default-features = false, features = ["aws_lc_rs", "crypto"] }
@@ -34,13 +33,17 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 x509-cert = { version = "0.3", default-features = false, features = ["std"] }
 
 [dev-dependencies]
+anyhow = "1" # examples and tests
 # Client side of the integration test (tests/connect.rs): IronRDP's own client stack.
-ironrdp-async = "=0.10.0"
-ironrdp-connector = "=0.10.0"
-ironrdp-graphics = "=0.9.0"
-ironrdp-session = "=0.11.0"
-ironrdp-tokio = { version = "=0.10.0", features = ["reqwest"] }
+ironrdp-async = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-connector = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-graphics = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-session = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-tokio = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888", features = ["reqwest"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+ironrdp-rdpeudp-tokio = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-rdpeudp = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
+ironrdp-rdpemt = { git = "https://github.com/Devolutions/IronRDP", rev = "293cb4bee90baddfd7b8ea08d2f46e31947a3888" }
 
 [build-dependencies]
 cbindgen = { version = "0.29", default-features = false }

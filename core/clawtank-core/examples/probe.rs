@@ -177,7 +177,7 @@ async fn pump_for(
             return Ok(());
         };
         let (action, payload) = read?;
-        for out in stage.process(image, action, &payload)? {
+        for out in stage.process(image, action, &payload, None)? {
             match out {
                 ironrdp_session::ActiveStageOutput::ResponseFrame(f) => {
                     session.write_all(&f).await?
@@ -375,7 +375,7 @@ async fn resize_demo(
             continue;
         };
         let (action, payload) = read?;
-        for out in stage.process(&mut image, action, &payload)? {
+        for out in stage.process(&mut image, action, &payload, None)? {
             if let ironrdp_session::ActiveStageOutput::ResponseFrame(f) = out {
                 session.write_all(&f).await?;
             }
@@ -395,7 +395,12 @@ impl ironrdp_rdpsnd::client::RdpsndClientHandler for AudioProbe {
     fn get_formats(&self) -> &[ironrdp_rdpsnd::pdu::AudioFormat] {
         &self.formats
     }
-    fn wave(&mut self, _format_no: usize, _ts: u32, data: std::borrow::Cow<'_, [u8]>) {
+    fn wave(
+        &mut self,
+        _format: &ironrdp_rdpsnd::pdu::AudioFormat,
+        _ts: u32,
+        data: std::borrow::Cow<'_, [u8]>,
+    ) {
         use std::sync::atomic::Ordering;
         self.bytes.fetch_add(data.len() as u64, Ordering::Relaxed);
         let peak = data

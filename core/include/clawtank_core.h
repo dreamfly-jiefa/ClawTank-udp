@@ -249,6 +249,10 @@ typedef struct {
    */
   bool lan_only;
   /**
+   * Offer the RDP-UDP sideband transport (falls back to TCP when negotiation fails).
+   */
+  bool udp;
+  /**
    * Optional allowlist: comma-separated IPs/CIDRs (`"192.168.1.0/24, 10.0.0.5"`); null or
    * empty means no allowlist.
    */

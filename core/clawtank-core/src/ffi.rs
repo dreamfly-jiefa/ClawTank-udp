@@ -277,6 +277,8 @@ pub struct CtServerConfig {
     pub key_der_len: usize,
     /// Refuse peers outside local/private address ranges.
     pub lan_only: bool,
+    /// Offer the RDP-UDP sideband transport (falls back to TCP when negotiation fails).
+    pub udp: bool,
     /// Optional allowlist: comma-separated IPs/CIDRs (`"192.168.1.0/24, 10.0.0.5"`); null or
     /// empty means no allowlist.
     pub allowlist: *const c_char,
@@ -510,6 +512,7 @@ unsafe fn server_start(
             lan_only: c.lan_only,
             allowlist,
         },
+        udp: c.udp,
     };
     if config.identity.acceptor().is_err() || config.identity.public_key().is_err() {
         return Err(CtStatus::TlsError);

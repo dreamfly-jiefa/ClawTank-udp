@@ -107,6 +107,7 @@ async fn files_both_ways() {
         password: "files-password".to_owned(),
         identity: TlsIdentity::generate("files.local").unwrap(),
         policy: AccessPolicy::lan_only(),
+        udp: false,
     };
     let server = server::start(
         config,
@@ -315,7 +316,7 @@ async fn files_both_ways() {
             continue;
         };
         let (action, payload) = read.unwrap();
-        for out in stage.process(&mut image, action, &payload).unwrap() {
+        for out in stage.process(&mut image, action, &payload, None).unwrap() {
             if let ActiveStageOutput::ResponseFrame(bytes) = out {
                 session.write_all(&bytes).await.unwrap();
             }

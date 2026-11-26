@@ -64,7 +64,8 @@ We pin with `=x.y.z` and commit `Cargo.lock`.
 - **Master only (unreleased in 0.13.0):** `with_rdpdr_factory(RdpdrServerFactory)` → `RdpdrServerBackend` (`on_device_announce`, …), with an EFS PDU module (`pdu/efs.rs`). Drive redirection looks feasible. Maturity is unknown until we exercise it in Phase 7.
 
 ### Other
-- USB redirection (opt-in feature), echo, auto-detect (RTT measurement; useful for adaptive quality), multitransport/UDP.
+- USB redirection (opt-in feature), echo, auto-detect (RTT measurement; useful for adaptive quality).
+- **UDP multitransport:** master only until 0.14.0 is published. `RdpServerBuilder::with_udp_transport` offers reliable RDPEUDP2 under TLS and Soft-Syncs EGFX onto the resulting MS-RDPEMT tunnel; every stage falls back to TCP. Only `mstsc` takes the offer. We pin a master commit for it (ADR-025).
 
 ## Gaps and proposals
 
@@ -74,4 +75,4 @@ We pin with `=x.y.z` and commit `Cargo.lock`.
 | Server-side CredSSP refactor in flight (#1432) | Keep our NLA code thin and behind `CredentialValidator` / `set_credentials`, so an API change touches one file. |
 | macOS-specific interop (Windows App for Mac/iPad) not tested upstream | Our own integration tests plus the manual checklist. Report upstream anything we find. |
 
-**Verdict:** nothing blocks us. We don't need a FreeRDP fallback. Build on `ironrdp-server 0.13.0` with `egfx`.
+**Verdict:** nothing blocks us. We don't need a FreeRDP fallback. Feature set as of the master pin for ADR-025; return to released crates once 0.14.0 ships.

@@ -90,6 +90,7 @@ private struct SecuritySettings: View {
     @State private var port = ""
     @State private var lanOnly = true
     @State private var allowlist = ""
+    @State private var udp = false
     @State private var confirmingOpen = false
     @State private var error: String?
 
@@ -106,6 +107,11 @@ private struct SecuritySettings: View {
                     }))
                 TextField("Allowlist (optional): IPs or CIDRs, comma-separated", text: $allowlist)
                 TextField("Port", text: $port)
+                Toggle("Use the UDP transport for video (experimental)", isOn: $udp)
+                Text("Moves only the video stream to a sideband UDP transport, as Windows-to-Windows RDP does. " +
+                     "Windows clients benefit most; Mac and FreeRDP clients stay on TCP, and a failed UDP setup " +
+                     "falls back to TCP automatically.")
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 if let error { Text(error).foregroundStyle(.red).font(.callout) }
                 Button("Apply Network Changes") { apply() }
                 Text("Applying restarts the server and disconnects anyone connected.")
@@ -117,6 +123,7 @@ private struct SecuritySettings: View {
             port = String(settings.port)
             lanOnly = settings.lanOnly
             allowlist = settings.allowlist
+            udp = settings.udpEnabled
         }
         .alert("Allow connections from outside your network?", isPresented: $confirmingOpen) {
             Button("Allow", role: .destructive) { lanOnly = false }
@@ -136,6 +143,7 @@ private struct SecuritySettings: View {
         settings.port = number
         settings.lanOnly = lanOnly
         settings.allowlist = allowlist.trimmingCharacters(in: .whitespaces)
+        settings.udpEnabled = udp
         server.restart()
     }
 }

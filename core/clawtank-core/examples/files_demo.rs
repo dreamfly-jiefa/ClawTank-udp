@@ -285,7 +285,7 @@ async fn main() -> anyhow::Result<()> {
             continue;
         };
         let (action, payload) = read?;
-        for out in stage.process(&mut image, action, &payload)? {
+        for out in stage.process(&mut image, action, &payload, None)? {
             if let ActiveStageOutput::ResponseFrame(bytes) = out {
                 session.write_all(&bytes).await?;
             }

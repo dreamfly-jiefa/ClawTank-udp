@@ -111,3 +111,11 @@ Live, 2026-10-21, loopback, `files_demo` (examples/files_demo.rs) acting as the 
 ## MCP Bundle
 - `scripts/package-mcpb.sh` checks that the bundled server starts and lists its tools. 2026-10-23: the 0.9.0 bundle lists all 12 tools and passes `mcpb validate` and `mcp-publisher validate`.
 - [ ] Human: double-click the `.mcpb` with Claude Desktop installed, enter a token, and ask Claude for a screenshot of the Mac.
+
+
+## UDP multitransport
+- Automated (`core/clawtank-core/tests/udp.rs`): the server offers the sideband, a real IronRDP client accepts it (RDPEUDP2 + TLS + EMT tunnel), the server Soft-Syncs EGFX onto it, and `reliable_udp_dvc_tunnel_in_use` becomes true. Runs on Linux in CI.
+- [ ] Human, Windows `mstsc` over Wi-Fi: enable Settings → Security → Network → “Use the UDP transport for video”, connect, and confirm the core log (Console, category `core`) contains “Sideband UDP transport established” and “Soft-Sync request issued”.
+- [ ] A/B on the same link: 5% loss + 100 ms with `pf`/`dnctl` shaping, UDP on vs off. Expect input to stay responsive with UDP, but video to still stutter under loss (reliable-only).
+- [ ] Confirm the tunnel-drop behaviour: kill UDP (firewall) mid-session; the connection ends rather than hanging.
+- [ ] Client coverage: macOS Windows App and FreeRDP decline and keep working over TCP.

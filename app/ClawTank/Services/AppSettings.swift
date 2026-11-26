@@ -55,6 +55,8 @@ final class AppSettings: ObservableObject {
     @Published var muteLocalAudio: Bool { didSet { save(muteLocalAudio, "muteLocalAudio") } }
     /// Share the clipboard both ways (applies from the next connection).
     @Published var clipboardEnabled: Bool { didSet { save(clipboardEnabled, "clipboardEnabled") } }
+    /// Offer the experimental RDP-UDP transport for video (clients that support it; TCP otherwise).
+    @Published var udpEnabled: Bool { didSet { save(udpEnabled, "udpEnabled") } }
     /// Local Agent API (127.0.0.1 only). Off by default.
     @Published var agentAPIEnabled: Bool { didSet { save(agentAPIEnabled, "agentAPIEnabled") } }
     @Published var agentPort: Int { didSet { save(agentPort, "agentPort") } }
@@ -76,6 +78,7 @@ final class AppSettings: ObservableObject {
         audioEnabled = defaults.object(forKey: "audioEnabled") as? Bool ?? true
         muteLocalAudio = defaults.bool(forKey: "muteLocalAudio")
         clipboardEnabled = defaults.object(forKey: "clipboardEnabled") as? Bool ?? true
+        udpEnabled = defaults.bool(forKey: "udpEnabled")
         agentAPIEnabled = defaults.bool(forKey: "agentAPIEnabled")
         let savedAgentPort = defaults.integer(forKey: "agentPort")
         agentPort = (1024...65535).contains(savedAgentPort) ? savedAgentPort : 3390
@@ -96,7 +99,7 @@ final class AppSettings: ObservableObject {
             "keepAwake": "\(keepAwake)", "port": "\(port)", "lanOnly": "\(lanOnly)",
             "allowlist": allowlist.isEmpty ? "(none)" : allowlist,
             "audioEnabled": "\(audioEnabled)", "muteLocalAudio": "\(muteLocalAudio)",
-            "clipboardEnabled": "\(clipboardEnabled)",
+            "clipboardEnabled": "\(clipboardEnabled)", "udpEnabled": "\(udpEnabled)",
             "agentAPIEnabled": "\(agentAPIEnabled)", "agentPort": "\(agentPort)"
         ]
     }

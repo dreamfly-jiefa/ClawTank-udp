@@ -16,7 +16,7 @@ use bytes::Bytes;
 use ironrdp_displaycontrol::pdu::DisplayControlMonitorLayout;
 use ironrdp_server::{
     BitmapUpdate, DesktopSize, DisplayUpdate, PixelFormat, RdpServerDisplay,
-    RdpServerDisplayUpdates,
+    RdpServerDisplayUpdates, ServerResult,
 };
 use tracing::info;
 
@@ -33,8 +33,8 @@ const DEFAULT_SIZE: DesktopSize = DesktopSize {
 };
 // RDP limits (MS-RDPBCGR 2.2.1.3.2). We only clamp sizes no valid client sends, so the size we
 // report always matches what the acceptor negotiated (see `with_honor_client_desktop_size`).
-const MAX_WIDTH: u16 = 8192;
-const MAX_HEIGHT: u16 = 8192;
+pub(crate) const MAX_WIDTH: u16 = 8192;
+pub(crate) const MAX_HEIGHT: u16 = 8192;
 const MIN_SIDE: u16 = 200;
 
 /// Serves the static test pattern.
@@ -105,7 +105,10 @@ impl RdpServerDisplay for TestPatternDisplay {
         self.video.request_resize(size.width, size.height, scale);
     }
 
-    async fn updates(&mut self) -> anyhow::Result<Box<dyn RdpServerDisplayUpdates>> {
+    async fn updates(
+        &mut self,
+        _ctx: ironrdp_server::DisplayContext,
+    ) -> ServerResult<Box<dyn RdpServerDisplayUpdates>> {
         self.tracker.session_started();
         let (tx, rx) = unbounded_channel();
         self.pointer.attach(tx);
@@ -141,7 +144,7 @@ impl TestPatternUpdates {
 
 #[async_trait::async_trait]
 impl RdpServerDisplayUpdates for TestPatternUpdates {
-    async fn next_update(&mut self) -> anyhow::Result<Option<DisplayUpdate>> {
+    async fn next_update(&mut self) -> ServerResult<Option<DisplayUpdate>> {
         if !self.sent {
             self.sent = true;
             info!(

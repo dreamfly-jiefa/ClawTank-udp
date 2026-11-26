@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use std::sync::Arc;
 
-use ironrdp_server::{Credentials, RdpServer, ServerEvent};
+use ironrdp_server::{Credentials, DesktopSize, RdpServer, ServerEvent};
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc::UnboundedSender, watch};
 use tracing::{error, info, warn};
@@ -39,6 +39,9 @@ pub struct ServerConfig {
     pub identity: TlsIdentity,
     /// Who may connect (LAN-only, allowlist); lockout is always on.
     pub policy: AccessPolicy,
+    /// Offer the optional RDP-UDP sideband transport (MS-RDPEMT/RDPEUDP, reliable only).
+    /// Negotiation or handshake failures fall back to TCP for that connection.
+    pub udp: bool,
 }
 
 /// A running server. Dropping it stops the server.
@@ -136,6 +139,12 @@ pub fn start(config: ServerConfig, sink: EventSink, input: InputSink) -> Result<
     let listener = std::net::TcpListener::bind(config.bind)?;
     listener.set_nonblocking(true)?;
     let local_addr = listener.local_addr()?;
+    // UDP and TCP occupy independent port spaces, so the sideband socket uses the same
+    // address and port. An unspecified IP lets the server bind the address the client
+    // actually reached (see RdpServer::set_connection_local_addr).
+    let udp_bind = config
+        .udp
+        .then_some(SocketAddr::new(local_addr.ip(), local_addr.port()));
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
@@ -165,7 +174,7 @@ pub fn start(config: ServerConfig, sink: EventSink, input: InputSink) -> Result<
     let thread = std::thread::Builder::new()
         .name("clawtank-rdp".to_owned())
         .spawn(move || {
-            let mut server = RdpServer::builder()
+            let builder = RdpServer::builder()
                 .with_addr(local_addr)
                 .with_hybrid(acceptor, public_key)
                 .with_input_handler(InputForwarder::new(input))
@@ -174,13 +183,23 @@ pub fn start(config: ServerConfig, sink: EventSink, input: InputSink) -> Result<
                     Arc::clone(&thread_video),
                     thread_pointer,
                 ))
-                .with_honor_client_desktop_size(true)
+                .with_honor_client_desktop_size(Some(DesktopSize {
+                    width: crate::display::MAX_WIDTH,
+                    height: crate::display::MAX_HEIGHT,
+                }))
                 .with_gfx_factory(Some(Box::new(GfxFactory::new(Arc::clone(&thread_video)))))
                 .with_sound_factory(Some(Box::new(SoundFactory::new(Arc::clone(&thread_audio)))))
                 .with_cliprdr_factory(Some(Box::new(ClipboardFactory::new(Arc::clone(
                     &thread_clipboard,
-                )))))
-                .build();
+                )))));
+            let builder = match udp_bind {
+                Some(addr) => {
+                    info!(%addr, "Offering RDP-UDP multitransport");
+                    builder.with_udp_transport(addr)
+                }
+                None => builder,
+            };
+            let mut server = builder.build();
             server.set_credentials(Some(credentials_rx.borrow_and_update().clone()));
             let _ = quit_tx.send(server.event_sender().clone());
 
@@ -219,6 +238,8 @@ pub fn start(config: ServerConfig, sink: EventSink, input: InputSink) -> Result<
                     if let Err(e) = stream.set_nodelay(true) {
                         warn!(%peer, error = %e, "TCP_NODELAY failed; latency may suffer");
                     }
+                    // The sideband UDP socket must leave from the address the client reached.
+                    server.set_connection_local_addr(stream.local_addr().ok());
                     let result = server.run_connection(stream).await;
                     thread_video.session_ended();
                     thread_audio.stop();

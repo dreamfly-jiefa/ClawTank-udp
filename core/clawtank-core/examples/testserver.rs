@@ -49,6 +49,7 @@ fn main() -> clawtank_core::Result<()> {
             lan_only,
             allowlist: Vec::new(),
         },
+        udp: std::env::var_os("CLAWTANK_UDP").is_some(),
     };
     let _server = server::start(
         config,
