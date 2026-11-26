@@ -352,6 +352,9 @@ extension ServerController {
                 lastNotice = "No display available to share"
                 return
             }
+            if !target.isVirtual, mode == .virtual {
+                lastNotice = "Could not create a virtual display; using the physical one"
+            }
             input.setSession(width: width, height: height, displayBounds: target.bounds)
             let flag = overlayFlag
             let video = VideoSession(server: server, width: width, height: height, target: target,
@@ -381,7 +384,7 @@ extension ServerController {
         enqueueVideo { [self] in
             await stopCurrentVideo()
             if releaseDisplay {
-                displays.release()
+                await displays.release()
                 displayDescription = nil
             }
         }

@@ -81,17 +81,25 @@ final class DisplayService {
                 if await existing.resize(widthPixels: width, heightPixels: height, hiDPI: hiDPI) {
                     return target(for: existing)
                 }
-                release()  // couldn't resize in place: recreate below
+                await release()  // couldn't resize in place: recreate below
             }
-            do {
-                let display = try await provider.create(widthPixels: width, heightPixels: height, hiDPI: hiDPI)
-                virtualDisplay = display
-                return target(for: display)
-            } catch {
-                log.error("Virtual display failed (\(String(describing: error), privacy: .public)); using physical")
+            // The window server brings displays up and down asynchronously. A new session can
+            // arrive before the previous display is gone; give creation one retry.
+            for attempt in 0..<2 {
+                do {
+                    let display = try await provider.create(
+                        widthPixels: width, heightPixels: height, hiDPI: hiDPI)
+                    virtualDisplay = display
+                    return target(for: display)
+                } catch {
+                    log.error("Virtual display failed (attempt \(attempt + 1)): "
+                              + "\(String(describing: error), privacy: .public)")
+                    if attempt == 0 { try? await Task.sleep(nanoseconds: 300_000_000) }
+                }
             }
+            log.error("Falling back to the physical display")
         } else {
-            release()
+            await release()
         }
         guard let main = physical.first(where: { $0 == CGMainDisplayID() }) ?? physical.first else {
             log.error("No display to capture")
@@ -100,10 +108,18 @@ final class DisplayService {
         return DisplayTarget(displayID: main, bounds: boundsOf(main), isVirtual: false)
     }
 
-    /// Removes the virtual display, if any (session ended).
-    func release() {
-        virtualDisplay?.invalidate()
+    /// Removes the virtual display, if any, and waits until the window server has dropped it
+    /// so the next session starts from a clean slate.
+    func release() async {
+        guard let display = virtualDisplay else { return }
+        let id = display.displayID
         virtualDisplay = nil
+        display.invalidate()
+        for _ in 0..<40 {
+            if !CGVirtualDisplayProvider.onlineDisplays().contains(id) { return }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        log.error("Virtual display \(id) was still online after release")
     }
 
     private func target(for display: VirtualDisplay) -> DisplayTarget {

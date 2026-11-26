@@ -90,7 +90,7 @@ final class DisplayServiceTests: XCTestCase {
         XCTAssertEqual(provider.created.count, 1, "resized, not recreated")
         XCTAssertEqual(display.sizes, [Request(width: 1280, height: 800, hiDPI: false)])
         XCTAssertEqual(again?.displayID, display.displayID)
-        service.release()
+        await service.release()
         XCTAssertTrue(display.invalidated)
     }
 

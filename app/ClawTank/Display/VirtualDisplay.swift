@@ -86,7 +86,9 @@ final class CGVirtualDisplayHandle: VirtualDisplay, @unchecked Sendable {
                                                              hiDPI: hiDPI)
             descriptor.vendorID = Self.vendorID
             descriptor.productID = Self.productID
-            descriptor.serialNum = 1
+            // Unique per display: two live displays sharing vendor/product/serial confuse the
+            // window server when a new session starts before the old one has fully gone away.
+            descriptor.serialNum = UInt32.random(in: 1...UInt32.max)
             guard let display = CGVirtualDisplay(descriptor: descriptor),
                   display.apply(Self.settings(widthPixels: widthPixels, heightPixels: heightPixels, hiDPI: hiDPI))
             else { return nil }
