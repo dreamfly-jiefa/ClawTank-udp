@@ -1025,9 +1025,14 @@ fn event_to_c(event: &CoreEvent) -> (CtEventKind, String) {
         CoreEvent::ClipboardFileContents { stream_id } => {
             (CtEventKind::ClipboardFileContents, stream_id.to_string())
         }
-        CoreEvent::VideoStart { width, height } => {
-            (CtEventKind::VideoStart, format!("{width}x{height}"))
-        }
+        CoreEvent::VideoStart {
+            width,
+            height,
+            scale_percent,
+        } => (
+            CtEventKind::VideoStart,
+            format!("{width}x{height}@{scale_percent}"),
+        ),
         CoreEvent::VideoStop => (CtEventKind::VideoStop, String::new()),
         CoreEvent::VideoResize {
             width,

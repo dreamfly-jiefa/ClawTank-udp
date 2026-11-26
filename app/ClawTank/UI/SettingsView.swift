@@ -70,6 +70,10 @@ private struct DisplaySettings: View {
             Picker("Display", selection: $settings.displayMode) {
                 ForEach(DisplayMode.allCases) { Text($0.title).tag($0) }
             }
+            Toggle("Retina quality (2× pixels)", isOn: $settings.retinaQuality)
+            Text("Renders at double resolution so text stays sharp, at up to 4× the bandwidth. "
+                 + "Applied on the next connection.")
+                .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Picker("Maximum frame rate", selection: $settings.maxFrameRate) {
                 Text("60 fps").tag(60)
                 Text("30 fps").tag(30)

@@ -190,8 +190,8 @@ final class ServerController: ObservableObject {
     private func handle(_ event: RdpServer.Event) {
         guard server != nil else { return }
         switch event {
-        case .videoStart(let width, let height):
-            startVideo(width: width, height: height, scalePercent: nil)
+        case .videoStart(let width, let height, let scale):
+            startVideo(width: width, height: height, scalePercent: scale)
         case .videoResize(let width, let height, let scale):
             startVideo(width: width, height: height, scalePercent: scale)
         case .videoStop:
@@ -346,8 +346,9 @@ extension ServerController {
         enqueueVideo { [self] in
             await stopCurrentVideo()
             guard let server else { return }
-            guard let target = await displays.prepare(width: width, height: height,
-                                                      scalePercent: scalePercent, mode: mode) else {
+            guard let target = await displays.prepare(
+                width: width, height: height, scalePercent: scalePercent, mode: mode,
+                retina: self.settings.retinaQuality) else {
                 lastNotice = "No display available to share"
                 return
             }

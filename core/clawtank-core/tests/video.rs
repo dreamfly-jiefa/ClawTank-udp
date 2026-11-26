@@ -71,7 +71,8 @@ async fn submitted_h264_reaches_an_egfx_client() {
                     e,
                     CoreEvent::VideoStart {
                         width: 1512,
-                        height: 982
+                        height: 982,
+                        scale_percent: 100
                     }
                 )
             })
@@ -156,4 +157,66 @@ async fn submitted_h264_reaches_an_egfx_client() {
         "session is gone"
     );
     server.stop();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn client_scale_reaches_video_start() {
+    let events: Arc<Mutex<Vec<CoreEvent>>> = Arc::default();
+    let log = Arc::clone(&events);
+    let config = ServerConfig {
+        bind: "127.0.0.1:0".parse().unwrap(),
+        username: USER.to_owned(),
+        password: PASSWORD.to_owned(),
+        identity: TlsIdentity::generate("video-test.local").unwrap(),
+        policy: clawtank_core::access::AccessPolicy::lan_only(),
+        udp: false,
+    };
+    let server = server::start(
+        config,
+        Arc::new(move |e| log.lock().unwrap().push(e)),
+        Arc::new(|_| {}),
+    )
+    .unwrap();
+
+    let mut config = client::client_config(USER, PASSWORD, 1512, 982);
+    config.desktop_scale_factor = 200;
+    config.device_scale_factor = Some(180);
+    let recorder = client::EgfxRecorder::default();
+    let (result, mut session, _) =
+        client::connect_with(server.local_addr(), config, Some(&recorder))
+            .await
+            .unwrap();
+
+    let mut stage = client::active_stage(result);
+    let mut image = ironrdp_session::image::DecodedImage::new(
+        ironrdp_graphics::image_processing::PixelFormat::RgbA32,
+        1512,
+        982,
+    );
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    while !events.lock().unwrap().iter().any(|e| {
+        matches!(
+            e,
+            CoreEvent::VideoStart {
+                scale_percent: 200,
+                ..
+            }
+        )
+    }) {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "VideoStart never carried the client scale: {:?}",
+            events.lock().unwrap()
+        );
+        let read = tokio::time::timeout(Duration::from_millis(200), session.read_pdu()).await;
+        let Ok(read) = read else { continue };
+        let (action, payload) = read.unwrap();
+        for out in stage.process(&mut image, action, &payload, None).unwrap() {
+            if let ironrdp_session::ActiveStageOutput::ResponseFrame(bytes) = out {
+                ironrdp_async::FramedWrite::write_all(&mut session, &bytes)
+                    .await
+                    .unwrap();
+            }
+        }
+    }
 }

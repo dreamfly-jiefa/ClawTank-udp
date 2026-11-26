@@ -24,8 +24,13 @@ pub enum CoreEvent {
     },
     /// A connection ended before the session started (bad password, TLS failure, …).
     ConnectionFailed { peer: SocketAddr, error: String },
-    /// The client's graphics pipeline is ready: start capturing/encoding at this size.
-    VideoStart { width: u16, height: u16 },
+    /// The client's graphics pipeline is ready: start capturing/encoding at this size and
+    /// desktop scale (`100` = 1x; `>= 125` asks for a Retina/HiDPI session).
+    VideoStart {
+        width: u16,
+        height: u16,
+        scale_percent: u32,
+    },
     /// The client resized its desktop: restart capture/encoding at this size.
     /// `scale_percent` is the client's desktop scale (100 = 1x, 200 = Retina).
     VideoResize {

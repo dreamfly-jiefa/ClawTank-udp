@@ -53,22 +53,30 @@ final class DisplayService {
 
     /// Retina when the client says it is scaled ≥150%, or (scale unknown) when the requested
     /// size is so large it can only be a Retina panel's native resolution.
-    nonisolated static func wantsHiDPI(width: Int, height: Int, scalePercent: Int?) -> Bool {
-        if let scalePercent { return scalePercent >= 150 }
+    nonisolated static func wantsHiDPI(
+        width: Int, height: Int, scalePercent: Int?, always: Bool = false) -> Bool {
+        if always { return true }
+        if let scalePercent { return scalePercent >= 125 }
         return width >= 2400 || height >= 1500
     }
 
     /// Returns the display to capture for a `width`×`height` session, creating or resizing the
     /// virtual display as needed.
-    func prepare(width: Int, height: Int, scalePercent: Int?, mode: DisplayMode) async -> DisplayTarget? {
+    func prepare(
+        width: Int, height: Int, scalePercent: Int?, mode: DisplayMode,
+        retina: Bool = false
+    ) async -> DisplayTarget? {
         let physical = physicalDisplays()
+        let hiDPI = Self.wantsHiDPI(
+            width: width, height: height, scalePercent: scalePercent, always: retina)
         let useVirtual = switch mode {
         case .virtual: true
         case .physical: false
-        case .automatic: physical.isEmpty
+        // A client that wants HiDPI needs a virtual display even when the Mac has a screen;
+        // capturing the physical one would downsample it and lose the Retina detail.
+        case .automatic: physical.isEmpty || hiDPI
         }
         if useVirtual, provider.isAvailable {
-            let hiDPI = Self.wantsHiDPI(width: width, height: height, scalePercent: scalePercent)
             if let existing = virtualDisplay {
                 if await existing.resize(widthPixels: width, heightPixels: height, hiDPI: hiDPI) {
                     return target(for: existing)

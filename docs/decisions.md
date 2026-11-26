@@ -183,3 +183,8 @@ It shows the MagicDNS name or IP in the menu, Settings → Remote Access (a guid
 - If an established tunnel drops while EGFX is on it, IronRDP ends the connection rather than silently falling back mid-session.
 - The IronRDP pin is a commit, not a release: bump it deliberately together with `Cargo.lock`; the temporary `ironrdp-server` vendor patch and ADR-017 are obsolete and removed.
 - MSRV becomes 1.94. Core is still portable, so the new end-to-end UDP test runs on Linux CI; the Swift side still needs a macOS runner.
+
+## ADR-026 — Retina sessions driven by the client's scale, virtual by default when wanted
+**Context.** A physical display captured at the client's pixel size downsamples Retina content and looks soft. MS-RDPBCGR carries the client's `desktopScaleFactor` in Client Core Data, and Display Control repeats a scale on layout changes. Windows at 100% sends no useful scale, yet a 2× source still sharpens text after the client downsamples.
+**Decision.** Record `desktop_scale_factor` in a `ConnectionHandler` before the display is asked for a size and pass it through `VideoStart`. Treat `>= 125%` as a HiDPI request, keep the `>= 2400 px` fallback for clients that send no scale, and add a "Retina quality (2× pixels)" setting (default on) that forces it. In Automatic display mode, use a virtual display when HiDPI is wanted even if a physical screen exists.
+**Consequences.** Default sessions now render a 2× framebuffer and may spend up to 4× the bits; the adaptive bit rate and quality presets still bound it. Physical mode stays available and never creates a display. Clients that lie about scale only cost pixels, not correctness.

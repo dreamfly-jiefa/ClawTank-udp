@@ -67,7 +67,11 @@ fn main() -> clawtank_core::Result<()> {
                 CoreEvent::ConnectionFailed { peer, error } => format!("failed {peer} {error}"),
                 CoreEvent::Stopped => "stopped".to_owned(),
                 CoreEvent::Error(e) => format!("error {e}"),
-                CoreEvent::VideoStart { width, height } => format!("video-start {width}x{height}"),
+                CoreEvent::VideoStart {
+                    width,
+                    height,
+                    scale_percent,
+                } => format!("video-start {width}x{height}@{scale_percent}"),
                 CoreEvent::VideoStop => "video-stop".to_owned(),
                 CoreEvent::VideoResize {
                     width,

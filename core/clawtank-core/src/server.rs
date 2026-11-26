@@ -12,7 +12,9 @@ use std::time::Duration;
 
 use std::sync::Arc;
 
-use ironrdp_server::{Credentials, DesktopSize, RdpServer, ServerEvent};
+use ironrdp_server::{
+    ConnectionHandler, ConnectionInfo, Credentials, DesktopSize, RdpServer, ServerEvent,
+};
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc::UnboundedSender, watch};
 use tracing::{error, info, warn};
@@ -21,13 +23,24 @@ use crate::Result;
 use crate::access::{AccessPolicy, SessionTracker};
 use crate::audio::{AudioHub, SoundFactory};
 use crate::clipboard::{ClipboardFactory, ClipboardHub};
-use crate::display::TestPatternDisplay;
+use crate::display::{ClientHints, TestPatternDisplay};
 use crate::events::{CoreEvent, EventSink};
 use crate::gfx::GfxFactory;
 use crate::input::{InputForwarder, InputSink};
 use crate::pointer::PointerHub;
 use crate::tls::TlsIdentity;
 use crate::video::VideoHub;
+
+/// Records the client's desktop scale before the display picks an initial size.
+struct HintsHandler(Arc<ClientHints>);
+
+impl ConnectionHandler for HintsHandler {
+    fn on_connection_info(&mut self, info: &ConnectionInfo) {
+        if let Some(scale) = info.desktop_scale_factor {
+            self.0.set_scale(scale);
+        }
+    }
+}
 
 /// Everything needed to start a server.
 #[derive(Debug, Clone)]
@@ -153,6 +166,9 @@ pub fn start(config: ServerConfig, sink: EventSink, input: InputSink) -> Result<
         .build()?;
 
     let tracker = Arc::new(SessionTracker::new(config.policy, sink.clone()));
+    let hints = Arc::new(ClientHints::default());
+    let thread_hints = Arc::clone(&hints);
+    let handler_hints = Arc::clone(&hints);
     let handle_tracker = Arc::clone(&tracker);
     let video = Arc::new(VideoHub::new(sink.clone()));
     let pointer = Arc::new(PointerHub::default());
@@ -182,7 +198,9 @@ pub fn start(config: ServerConfig, sink: EventSink, input: InputSink) -> Result<
                     Arc::clone(&tracker),
                     Arc::clone(&thread_video),
                     thread_pointer,
+                    thread_hints,
                 ))
+                .with_connection_handler(Some(Box::new(HintsHandler(handler_hints))))
                 .with_honor_client_desktop_size(Some(DesktopSize {
                     width: crate::display::MAX_WIDTH,
                     height: crate::display::MAX_HEIGHT,
@@ -238,6 +256,8 @@ pub fn start(config: ServerConfig, sink: EventSink, input: InputSink) -> Result<
                     if let Err(e) = stream.set_nodelay(true) {
                         warn!(%peer, error = %e, "TCP_NODELAY failed; latency may suffer");
                     }
+                    // Client hints are per connection.
+                    hints.reset();
                     // The sideband UDP socket must leave from the address the client reached.
                     server.set_connection_local_addr(stream.local_addr().ok());
                     let result = server.run_connection(stream).await;

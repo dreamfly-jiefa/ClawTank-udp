@@ -4,6 +4,9 @@ All notable changes are documented here. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Display
+- Retina/HiDPI sessions: the client's desktop scale factor reaches the display setup, `>= 125%` (or the new "Retina quality (2× pixels)" setting, default on) makes Automatic mode use a HiDPI virtual display at the requested pixel size, and `VideoStart` carries the scale.
+
 ### Fixes
 - AVC420 regions now use the exclusive right/bottom bounds the current `ironrdp-egfx` defines; the destination rectangle was one pixel short.
 - Screen Recording and Accessibility system prompts appear at most once per launch instead of once per connection.

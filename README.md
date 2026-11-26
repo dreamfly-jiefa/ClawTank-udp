@@ -128,6 +128,9 @@ Screen Recording lets ClawTank capture the screen to send it. Accessibility lets
 **Why a separate password instead of my macOS account?**
 So a leaked RDP password can't unlock your Mac, your Keychain or `sudo`. Change it in **Settings → Security**.
 
+**Why does text look soft from Windows?**
+ClawTank renders a 2× Retina desktop by default (**Settings → Display & Quality → Retina quality**), which keeps text sharp even when Windows scaling is 100%. Leave it on and avoid **Physical display** mode if you want the sharpest text; that mode captures the Mac's screen at the client's pixel size and must downsample. The cost is up to 4× the bandwidth.
+
 **Can I connect while the Mac is locked or at the login window?**
 macOS doesn't let apps capture a locked screen: clients see only the wallpaper until someone unlocks the Mac at the keyboard. On an always-on Mac mini you can turn on automatic login (not available with FileVault), so the desktop is ready after a restart. Weigh that against who can physically reach the Mac. The ClawTank menu shows when the Mac is locked.
 

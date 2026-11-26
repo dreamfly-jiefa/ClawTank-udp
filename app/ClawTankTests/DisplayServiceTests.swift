@@ -54,6 +54,23 @@ final class DisplayServiceTests: XCTestCase {
         XCTAssertTrue(provider.requests.isEmpty)
     }
 
+    func testAutomaticUsesVirtualForARetinaClientEvenWithAScreen() async {
+        let provider = FakeProvider()
+        let service = makeService(physical: [7], provider: provider)
+        let target = await service.prepare(width: 3024, height: 1964, scalePercent: 200, mode: .automatic)
+        XCTAssertEqual(target?.isVirtual, true)
+        XCTAssertEqual(provider.requests.first, Request(width: 3024, height: 1964, hiDPI: true))
+    }
+
+    func testRetinaOverrideForcesHiDPI() async {
+        let provider = FakeProvider()
+        let service = makeService(physical: [7], provider: provider)
+        let target = await service.prepare(width: 1512, height: 982, scalePercent: 100,
+                                           mode: .automatic, retina: true)
+        XCTAssertEqual(target?.isVirtual, true)
+        XCTAssertEqual(provider.requests.first, Request(width: 1512, height: 982, hiDPI: true))
+    }
+
     func testAutomaticCreatesVirtualWhenHeadless() async {
         let provider = FakeProvider()
         let service = makeService(physical: [], provider: provider)
@@ -116,6 +133,8 @@ final class DisplayServiceTests: XCTestCase {
         XCTAssertFalse(DisplayService.wantsHiDPI(width: 3024, height: 1964, scalePercent: 100))
         XCTAssertTrue(DisplayService.wantsHiDPI(width: 3024, height: 1964, scalePercent: nil))
         XCTAssertFalse(DisplayService.wantsHiDPI(width: 1512, height: 982, scalePercent: nil))
+        XCTAssertTrue(DisplayService.wantsHiDPI(width: 1512, height: 982, scalePercent: nil, always: true))
+        XCTAssertTrue(DisplayService.wantsHiDPI(width: 1512, height: 982, scalePercent: 125))
         let settings = CGVirtualDisplayHandle.settings(widthPixels: 3024, heightPixels: 1964, hiDPI: true)
         XCTAssertEqual(settings.modes.first?.width, 1512, "HiDPI mode is in points")
         XCTAssertEqual(settings.hiDPI, 1)

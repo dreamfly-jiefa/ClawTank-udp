@@ -57,6 +57,7 @@ pub struct VideoHub {
     // Touched from handler callbacks (pipeline mutex held): atomics only.
     channel_open: AtomicBool,
     session_size: AtomicU32,
+    session_scale: AtomicU32,
     frames_acked: AtomicU64,
     /// Send time per in-flight frame id. Its own lock: taken from the handler (pipeline mutex
     /// held) and from `submit_h264` *after* the pipeline mutex is released, never nested.
@@ -99,6 +100,7 @@ impl VideoHub {
             }),
             channel_open: AtomicBool::new(false),
             session_size: AtomicU32::new(pack(1920, 1080)),
+            session_scale: AtomicU32::new(100),
             frames_acked: AtomicU64::new(0),
             send_times: Mutex::new(HashMap::new()),
             ack_latency_us: AtomicU32::new(0),
@@ -124,6 +126,16 @@ impl VideoHub {
         unpack(self.session_size.load(Ordering::Acquire))
     }
 
+    /// The client's desktop scale in percent. Reset by the next connection.
+    pub fn set_session_scale(&self, scale_percent: u32) {
+        self.session_scale
+            .store(scale_percent.max(100), Ordering::Release);
+    }
+
+    pub fn session_scale(&self) -> u32 {
+        self.session_scale.load(Ordering::Acquire)
+    }
+
     /// A new connection built its pipeline: forget the previous session's state.
     pub fn attach(&self, handle: GfxServerHandle) {
         let mut inner = self.lock();
@@ -131,6 +143,7 @@ impl VideoHub {
         inner.surface = None;
         inner.need_keyframe = true;
         inner.started = Instant::now();
+        self.session_scale.store(100, Ordering::Release);
         inner.frames_sent = 0;
         inner.bytes_sent = 0;
         inner.frames_dropped = 0;
@@ -168,10 +181,12 @@ impl VideoHub {
     pub(crate) fn on_ready(&self) {
         let (w, h) = self.session_size();
         if !self.channel_open.swap(true, Ordering::AcqRel) {
-            info!(width = w, height = h, "EGFX ready; requesting video");
+            let scale = self.session_scale();
+            info!(width = w, height = h, scale, "EGFX ready; requesting video");
             (self.sink)(CoreEvent::VideoStart {
                 width: w,
                 height: h,
+                scale_percent: scale,
             });
         }
     }

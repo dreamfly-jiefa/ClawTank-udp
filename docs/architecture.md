@@ -54,7 +54,7 @@ Backpressure is applied before encoding, in `VideoSession.swift`: if the core wo
 - **Physical:** the Mac's own screen, scaled to fit.
 - **Automatic:** virtual when the Mac is headless, physical otherwise.
 
-Live resize arrives through the Display Control channel (`resize` in the core) and either resizes the virtual display in place or recreates it.
+The client's `desktopScaleFactor` is captured before the display is chosen: `>= 125%`, or the Retina setting, selects a HiDPI virtual display at the exact client pixel size (ADR-026). Live resize arrives through the Display Control channel (`resize` in the core) and either resizes the virtual display in place or recreates it.
 
 **Input.** The client's scancodes, Unicode and mouse events are decoded in `input.rs` and delivered to `InputPipeline.swift`. `ScancodeMap` and `CoordinateMapper` translate them, and `InputInjector` posts CGEvents (this needs the Accessibility permission). Cursor shape changes travel the other way: `CursorPublisher.swift` → `pointer.rs`, which draws the cursor on the client.
 

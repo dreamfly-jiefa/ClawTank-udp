@@ -11,6 +11,7 @@
 
 use std::num::{NonZeroU16, NonZeroUsize};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use bytes::Bytes;
 use ironrdp_displaycontrol::pdu::DisplayControlMonitorLayout;
@@ -37,12 +38,37 @@ pub(crate) const MAX_WIDTH: u16 = 8192;
 pub(crate) const MAX_HEIGHT: u16 = 8192;
 const MIN_SIDE: u16 = 200;
 
+/// What the client told us during negotiation, before the display is asked for a size.
+#[derive(Debug, Default)]
+pub struct ClientHints {
+    scale_percent: AtomicU32,
+}
+
+impl ClientHints {
+    pub fn reset(&self) {
+        self.scale_percent.store(0, Ordering::Release);
+    }
+
+    pub fn set_scale(&self, scale_percent: u32) {
+        self.scale_percent.store(scale_percent, Ordering::Release);
+    }
+
+    /// The client's desktop scale, or 100 when it didn't advertise one.
+    pub fn scale(&self) -> u32 {
+        match self.scale_percent.load(Ordering::Acquire) {
+            0 => 100,
+            value => value.max(100),
+        }
+    }
+}
+
 /// Serves the static test pattern.
 pub struct TestPatternDisplay {
     size: DesktopSize,
     tracker: Arc<SessionTracker>,
     video: Arc<VideoHub>,
     pointer: Arc<PointerHub>,
+    hints: Arc<ClientHints>,
 }
 
 impl TestPatternDisplay {
@@ -50,12 +76,14 @@ impl TestPatternDisplay {
         tracker: Arc<SessionTracker>,
         video: Arc<VideoHub>,
         pointer: Arc<PointerHub>,
+        hints: Arc<ClientHints>,
     ) -> Self {
         Self {
             size: DEFAULT_SIZE,
             tracker,
             video,
             pointer,
+            hints,
         }
     }
 }
@@ -77,6 +105,7 @@ impl RdpServerDisplay for TestPatternDisplay {
         self.size = clamp_size(client_size);
         self.video
             .set_session_size(self.size.width, self.size.height);
+        self.video.set_session_scale(self.hints.scale());
         info!(?client_size, chosen = ?self.size, "Client requested desktop size");
         self.size
     }

@@ -39,6 +39,9 @@ final class AppSettings: ObservableObject {
     private let defaults: UserDefaults
 
     @Published var displayMode: DisplayMode { didSet { save(displayMode.rawValue, "displayMode") } }
+    /// Render a 2× (Retina) desktop even when the client doesn't ask for one. Sharper text,
+    /// 4× the pixels to encode.
+    @Published var retinaQuality: Bool { didSet { save(retinaQuality, "retinaQuality") } }
     @Published var maxFrameRate: Int { didSet { save(maxFrameRate, "maxFrameRate") } }
     @Published var quality: QualityPreset { didSet { save(quality.rawValue, "quality") } }
     @Published var swapControlCommand: Bool { didSet { save(swapControlCommand, "swapControlCommand") } }
@@ -64,6 +67,7 @@ final class AppSettings: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         displayMode = DisplayMode(rawValue: defaults.string(forKey: "displayMode") ?? "") ?? .automatic
+        retinaQuality = defaults.object(forKey: "retinaQuality") as? Bool ?? true
         let savedFrameRate = defaults.integer(forKey: "maxFrameRate")
         maxFrameRate = [30, 60].contains(savedFrameRate) ? savedFrameRate : 60
         quality = QualityPreset(rawValue: defaults.string(forKey: "quality") ?? "") ?? .balanced
@@ -94,7 +98,8 @@ final class AppSettings: ObservableObject {
     /// Settings for the diagnostics bundle (no secrets are stored here, but keep it explicit).
     var diagnosticsSummary: [String: String] {
         [
-            "displayMode": displayMode.rawValue, "maxFrameRate": "\(maxFrameRate)", "quality": quality.rawValue,
+            "displayMode": displayMode.rawValue, "retinaQuality": "\(retinaQuality)",
+            "maxFrameRate": "\(maxFrameRate)", "quality": quality.rawValue,
             "swapControlCommand": "\(swapControlCommand)", "showsStatsOverlay": "\(showsStatsOverlay)",
             "keepAwake": "\(keepAwake)", "port": "\(port)", "lanOnly": "\(lanOnly)",
             "allowlist": allowlist.isEmpty ? "(none)" : allowlist,

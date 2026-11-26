@@ -70,7 +70,7 @@ final class RdpServer: @unchecked Sendable {
         case clientConnected(String)
         case clientDisconnected(peer: String, error: String?)
         case connectionFailed(peer: String, error: String)
-        case videoStart(width: Int, height: Int)
+        case videoStart(width: Int, height: Int, scalePercent: Int)
         case videoResize(width: Int, height: Int, scalePercent: Int)
         case videoStop
         case audioStart(rate: Int, channels: Int)
