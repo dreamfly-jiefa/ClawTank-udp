@@ -1,0 +1,54 @@
+name: Build macOS app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/udp-multitransport]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install tools
+        run: brew install xcodegen swiftlint
+
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        run: make test
+
+      - name: Build app
+        run: make build
+
+      - name: Package DMG
+        run: |
+          set -euo pipefail
+          APP="app/build/Build/Products/Release/ClawTank.app"
+          test -d "$APP"
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")
+          codesign --verify --deep --strict "$APP"
+          mkdir -p dist
+          STAGE=$(mktemp -d)
+          cp -R "$APP" "$STAGE/ClawTank.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "ClawTank $VERSION" -srcfolder "$STAGE" -ov -format UDZO "dist/ClawTank-$VERSION-arm64.dmg"
+          rm -rf "$STAGE"
+          (cd dist && shasum -a 256 *.dmg > SHA256SUMS && cat SHA256SUMS)
+          hdiutil verify "dist/ClawTank-$VERSION-arm64.dmg"
+          codesign --verify --deep --strict "$APP/Contents/MacOS/clawtank-mcp"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClawTank-arm64-dmg
+          path: |
+            dist/*.dmg
+            dist/SHA256SUMS
+          if-no-files-found: error
