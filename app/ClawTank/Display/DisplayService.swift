@@ -92,8 +92,8 @@ final class DisplayService {
                     virtualDisplay = display
                     return target(for: display)
                 } catch {
-                    log.error("Virtual display failed (attempt \(attempt + 1)): "
-                              + "\(String(describing: error), privacy: .public)")
+                    log.error("Virtual display failed (attempt \(attempt + 1))")
+                    log.error("\(String(describing: error), privacy: .public)")
                     if attempt == 0 { try? await Task.sleep(nanoseconds: 300_000_000) }
                 }
             }
