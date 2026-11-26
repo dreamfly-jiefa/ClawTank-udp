@@ -285,10 +285,21 @@ final class ServerController: ObservableObject {
         session = nil
     }
 
+    private func fail(_ message: String) {
+        log.error("\(message, privacy: .public)")
+        endSession()
+        server?.stop()
+        server = nil
+        status = .failed(message)
+    }
+}
+
+// Input, cursor and permission prompts (same file, so private state stays reachable).
+extension ServerController {
     // MARK: - Input and cursor
 
+    /// Shows the system prompt at most once per launch; input is ignored until granted.
     private func startInput() {
-        // Shows the system prompt the first time; input is ignored until granted.
         // "AXTrustedCheckOptionPrompt" is the value of kAXTrustedCheckOptionPrompt (a C global).
         if !AXIsProcessTrusted() {
             if !promptedAccessibility {
@@ -311,15 +322,6 @@ final class ServerController: ObservableObject {
         cursor?.stop()
         cursor = nil
     }
-
-    private func fail(_ message: String) {
-        log.error("\(message, privacy: .public)")
-        endSession()
-        server?.stop()
-        server = nil
-        status = .failed(message)
-    }
-
 }
 
 // Video lifecycle (same file, so it keeps access to the controller's private state).
